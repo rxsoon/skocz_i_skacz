@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
+
+<style>
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#0a0a12;
+  font-family:Arial;
+  color:white;
+}
+
+.box{
+  width:280px;
+  padding:20px;
+  background:rgba(255,255,255,0.05);
+  border-radius:12px;
+}
+
+input{
+  width:100%;
+  margin:8px 0;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+}
+
+button{
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  background:#ff6600;
+  border:none;
+  color:white;
+  border-radius:8px;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2>Skocz i skacz</h2>
+
+  <input id="email" placeholder="Email">
+  <input id="pass" type="password" placeholder="Hasło">
+  <input id="name" placeholder="Nick (rejestracja)">
+
+  <button onclick="register()">Rejestracja</button>
+  <button onclick="login()">Logowanie</button>
+</div>
+
+<script type="module">
+import { auth, db } from "./firebase.js";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+  doc,
+  setDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+/* REGISTER */
+window.register = async () => {
+  const email = document.getElementById("email").value;
+  const pass = document.getElementById("pass").value;
+  const name = document.getElementById("name").value;
+
+  const user = await createUserWithEmailAndPassword(auth, email, pass);
+
+  await setDoc(doc(db,"users",user.user.uid),{
+    name,
+    count:0,
+    mult:1,
+    auto:false,
+    turbo:false,
+    rebirths:0,
+    step:0
+  });
+
+  location.href="index.html";
+};
+
+/* LOGIN */
+window.login = async () => {
+  const email = document.getElementById("email").value;
+  const pass = document.getElementById("pass").value;
+
+  await signInWithEmailAndPassword(auth, email, pass);
+
+  location.href="index.html";
+};
+</script>
+
+</body>
+</html>

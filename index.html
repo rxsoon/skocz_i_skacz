@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>Skocz i skacz</title>
+
+<style>
+body{
+  margin:0;
+  height:100vh;
+  background:radial-gradient(circle,#1e1e2f,#0a0a12);
+  font-family:Arial;
+  color:white;
+  overflow:hidden;
+  display:none;
+}
+
+h1{
+  text-align:center;
+  font-size:65px;
+  margin-top:20px;
+}
+
+#count{
+  text-align:center;
+  font-size:45px;
+}
+
+/* GAME */
+.scene{
+  position:absolute;
+  top:55%;
+  left:50%;
+  transform:translate(-50%,-50%);
+}
+
+.ground{
+  width:460px;
+  height:14px;
+  background:#999;
+  border-radius:12px;
+  position:relative;
+}
+
+.ball{
+  width:85px;
+  height:85px;
+  border-radius:50%;
+  background:gray;
+  position:absolute;
+  bottom:14px;
+  left:50%;
+  transform:translateX(-50%);
+}
+
+.jump{
+  animation:jump 0.5s ease-out;
+}
+
+@keyframes jump{
+  50%{transform:translateX(-50%) translateY(-140px);}
+}
+
+/* SHOP */
+.shop{
+  position:absolute;
+  right:20px;
+  top:50%;
+  transform:translateY(-50%);
+  background:rgba(0,0,0,0.55);
+  padding:15px;
+  border-radius:14px;
+}
+
+.shop button{
+  display:block;
+  margin:8px 0;
+  padding:12px;
+  width:180px;
+  border:none;
+  border-radius:10px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.active{
+  background:linear-gradient(135deg,#ff6600,#ff8800);
+  color:white;
+}
+
+.locked{
+  background:gray;
+  opacity:0.4;
+  cursor:not-allowed;
+}
+
+/* RANK */
+#rank{
+  position:absolute;
+  left:20px;
+  top:20px;
+  background:rgba(0,0,0,0.45);
+  padding:12px;
+  border-radius:12px;
+  width:210px;
+}
+
+#rank li{
+  margin:6px 0;
+  font-size:16px;
+}
+
+/* PROFILE */
+#profile{
+  position:absolute;
+  top:10px;
+  right:10px;
+  font-size:28px;
+  cursor:pointer;
+  z-index:999;
+}
+
+#menu{
+  display:none;
+  position:absolute;
+  top:35px;
+  right:0;
+  background:black;
+  padding:8px;
+  border-radius:10px;
+}
+
+#profile:hover #menu{
+  display:block;
+}
+
+#menu button{
+  background:red;
+  border:none;
+  color:white;
+  padding:8px;
+  border-radius:8px;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div id="profile">
+👤
+<div id="menu">
+<button onclick="logout()">Wyloguj</button>
+</div>
+</div>
+
+<h1>Skocz i skacz</h1>
+<div id="count">0</div>
+
+<div class="scene">
+  <div class="ground">
+    <div class="ball" id="ball"></div>
+  </div>
+</div>
+
+<div class="shop">
+  <button id="b2" onclick="buy2()">x2 (100)</button>
+  <button id="bAuto" onclick="buyAuto()">Auto (300)</button>
+  <button id="b3" onclick="buy3()">x3 (600)</button>
+  <button id="bTurbo" onclick="buyTurbo()">Turbo (1000)</button>
+  <button onclick="rebirth()">REBIRTH (10000)</button>
+</div>
+
+<div id="rank">
+  <h3>TOP 10</h3>
+  <!-- 🔥 zmienione z OL na UL -->
+  <ul id="list"></ul>
+</div>
+
+<script type="module">
+import { auth, db } from "./firebase.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  doc, getDoc, updateDoc,
+  collection, query, orderBy, limit,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+/* AUTH */
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){
+    location.href="login.html";
+    return;
+  }
+
+  document.body.style.display="block";
+
+  userRef=doc(db,"users",user.uid);
+
+  const snap=await getDoc(userRef);
+
+  if(snap.exists()){
+    const d=snap.data();
+
+    count=d.count||0;
+    mult=d.mult||1;
+    auto=d.auto||false;
+    turbo=d.turbo||false;
+    rebirths=d.rebirths||0;
+    step=d.step||0;
+  }
+
+  updateUI();
+  updateBall();
+  updateShop();
+  loadRank();
+
+  if(auto) startAuto();
+  if(turbo) startTurbo();
+});
+
+/* LOGOUT */
+window.logout = async () => {
+  await signOut(auth);
+  location.href="login.html";
+};
+
+/* GAME */
+let count=0;
+let mult=1;
+let auto=false;
+let turbo=false;
+let rebirths=0;
+let step=0;
+
+let jumping=false;
+let userRef;
+
+let autoInterval=null;
+let turboInterval=null;
+
+const ball=document.getElementById("ball");
+const countEl=document.getElementById("count");
+
+function jump(){
+  if(jumping) return;
+
+  jumping=true;
+
+  count += mult + rebirths;
+
+  updateUI();
+  save();
+
+  ball.classList.add("jump");
+
+  setTimeout(()=>{
+    ball.classList.remove("jump");
+    jumping=false;
+  },500);
+}
+
+document.body.onclick=jump;
+
+/* SAVE */
+async function save(){
+  if(!userRef) return;
+
+  await updateDoc(userRef,{
+    count,mult,auto,turbo,rebirths,step
+  });
+}
+
+/* UI */
+function updateUI(){
+  countEl.textContent=count;
+}
+
+/* BALL */
+function updateBall(){
+  if(rebirths === 0) ball.style.background="gray";
+  else if(rebirths === 1) ball.style.background="#4da3ff";
+  else if(rebirths === 2) ball.style.background="#00ff88";
+  else if(rebirths === 3) ball.style.background="#ffcc00";
+  else if(rebirths === 4) ball.style.background="#ff4d4d";
+  else ball.style.background="gold";
+}
+
+/* SHOP */
+function updateShop(){
+  const buttons=[
+    {id:"b2", step:0},
+    {id:"bAuto", step:1},
+    {id:"b3", step:2},
+    {id:"bTurbo", step:3}
+  ];
+
+  buttons.forEach(b=>{
+    const el=document.getElementById(b.id);
+
+    if(step === b.step){
+      el.className="active";
+      el.disabled=false;
+    } else {
+      el.className="locked";
+      el.disabled=true;
+    }
+  });
+}
+
+/* AUTO */
+function startAuto(){
+  if(autoInterval) return;
+
+  autoInterval=setInterval(()=>{
+    if(!jumping) jump();
+  },1500);
+}
+
+function startTurbo(){
+  if(turboInterval) return;
+
+  turboInterval=setInterval(()=>{
+    if(!jumping) jump();
+  },700);
+}
+
+/* SHOP */
+window.buy2=()=>{ if(step!==0 || count<100) return; count-=100; mult=2; step=1; updateShop(); save(); };
+window.buyAuto=()=>{ if(step!==1 || count<300) return; count-=300; auto=true; step=2; startAuto(); updateShop(); save(); };
+window.buy3=()=>{ if(step!==2 || count<600) return; count-=600; mult=3; step=3; updateShop(); save(); };
+window.buyTurbo=()=>{ if(step!==3 || count<1000) return; count-=1000; turbo=true; step=4; startTurbo(); updateShop(); save(); };
+
+/* REBIRTH */
+window.rebirth=()=>{ if(step!==4 || count<10000) return; rebirths++; count=0; mult=1; auto=false; turbo=false; step=0; updateBall(); updateShop(); save(); location.reload(); };
+
+/* 🔥 LIVE RANK BEZ MIGANIA */
+function loadRank(){
+  const q=query(collection(db,"users"),orderBy("count","desc"),limit(10));
+
+  onSnapshot(q,(snap)=>{
+    const list=document.getElementById("list");
+
+    let i=1;
+
+    snap.forEach(d=>{
+      const data=d.data();
+
+      let li = list.children[i-1];
+
+      if(!li){
+        li=document.createElement("li");
+        li.style.opacity=0;
+
+        setTimeout(()=>{
+          li.style.transition="0.3s";
+          li.style.opacity=1;
+        },10);
+
+        list.appendChild(li);
+      }
+
+      let color="white";
+      if(i===1) color="gold";
+      else if(i===2) color="silver";
+      else if(i===3) color="#cd7f32";
+
+      li.style.color=color;
+      li.style.fontWeight="bold";
+
+      li.textContent = `${i}. ${data.name || "Gracz"} - ${data.count || 0}`;
+
+      i++;
+    });
+  });
+}
+</script>
+
+</body>
+</html>
