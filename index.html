@@ -13,7 +13,6 @@ body{
   overflow:hidden;
   display:none;
   background:radial-gradient(circle,#1e1e2f,#0a0a12);
-  position:relative;
 }
 
 h1{
@@ -86,9 +85,7 @@ h1{
   width:210px;
 }
 
-#rank li{
-  margin:6px 0;
-}
+#rank li{ margin:6px 0; }
 
 /* PROFILE */
 #profile{
@@ -110,9 +107,7 @@ h1{
   border-radius:10px;
 }
 
-#menu.show{
-  display:block;
-}
+#menu.show{ display:block; }
 
 #menu button{
   background:red;
@@ -131,7 +126,6 @@ h1{
   color:#00ff88;
   animation:floatUp 0.8s forwards;
   pointer-events:none;
-  z-index:9999;
 }
 
 @keyframes floatUp{
@@ -148,7 +142,6 @@ h1{
   border-radius:50%;
   animation:fly 0.5s forwards;
   pointer-events:none;
-  z-index:9999;
 }
 
 @keyframes fly{
@@ -197,7 +190,9 @@ import {
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-/* STATE */
+/* =========================
+   STATE
+========================= */
 let count=0,mult=1,auto=false,turbo=false,rebirths=0,step=0;
 let jumping=false;
 let userRef;
@@ -205,9 +200,24 @@ let userRef;
 const ball=document.getElementById("ball");
 const countEl=document.getElementById("count");
 
-/* LOGIN */
+/* =========================
+   🔥 FIX: DECLARATIONS FIRST
+========================= */
+let updateShop;
+let updateUI;
+let updateBall;
+let loadRank;
+let startAuto;
+let startTurbo;
+
+/* =========================
+   LOGIN
+========================= */
 onAuthStateChanged(auth, async (user)=>{
-  if(!user){ location.href="login.html"; return; }
+  if(!user){
+    location.href="login.html";
+    return;
+  }
 
   document.body.style.display="block";
   userRef=doc(db,"users",user.uid);
@@ -232,7 +242,9 @@ onAuthStateChanged(auth, async (user)=>{
   if(turbo) startTurbo();
 });
 
-/* LOGOUT */
+/* =========================
+   LOGOUT
+========================= */
 document.getElementById("profile").onclick=()=>{
   document.getElementById("menu").classList.toggle("show");
 };
@@ -242,7 +254,9 @@ window.logout=async()=>{
   location.href="login.html";
 };
 
-/* JUMP */
+/* =========================
+   JUMP
+========================= */
 function jump(){
   if(jumping) return;
   jumping=true;
@@ -265,7 +279,9 @@ function jump(){
 
 document.body.onclick=jump;
 
-/* FLOAT */
+/* =========================
+   FLOAT
+========================= */
 function spawnFloat(v){
   const el=document.createElement("div");
   el.className="float-number";
@@ -280,7 +296,9 @@ function spawnFloat(v){
   setTimeout(()=>el.remove(),800);
 }
 
-/* PARTICLES */
+/* =========================
+   PARTICLES
+========================= */
 function spawnParticles(){
   const r=ball.getBoundingClientRect();
 
@@ -302,25 +320,72 @@ function spawnParticles(){
   }
 }
 
-/* UI */
-function updateUI(){ countEl.textContent=count; }
+/* =========================
+   UI
+========================= */
+updateUI=function(){
+  countEl.textContent=count;
+};
 
-function updateBall(){
+updateBall=function(){
   ball.style.background =
     rebirths===0?"gray":
     rebirths===1?"#4da3ff":
     rebirths===2?"#00ff88":
     rebirths===3?"#ffcc00":"gold";
-}
+};
 
-/* SAVE */
+/* =========================
+   SAVE
+========================= */
 async function save(){
   if(!userRef) return;
   await updateDoc(userRef,{count,mult,auto,turbo,rebirths,step});
 }
 
-/* RANK */
-function loadRank(){
+/* =========================
+   SHOP
+========================= */
+updateShop=function(){
+  const b=[
+    {id:"b2",step:0},
+    {id:"bAuto",step:1},
+    {id:"b3",step:2},
+    {id:"bTurbo",step:3}
+  ];
+  b.forEach(x=>{
+    const el=document.getElementById(x.id);
+    el.className=(step===x.step)?"active":"locked";
+  });
+};
+
+/* =========================
+   AUTO / TURBO
+========================= */
+startAuto=function(){
+  setInterval(()=>{ if(!jumping) jump(); },1500);
+};
+
+startTurbo=function(){
+  setInterval(()=>{ if(!jumping) jump(); },700);
+};
+
+/* =========================
+   SHOP ACTIONS
+========================= */
+window.buy2=()=>{ if(step!==0||count<100)return; count-=100; mult=2; step=1; updateShop(); save(); };
+window.buyAuto=()=>{ if(step!==1||count<300)return; count-=300; auto=true; step=2; startAuto(); updateShop(); save(); };
+window.buy3=()=>{ if(step!==2||count<600)return; count-=600; mult=3; step=3; updateShop(); save(); };
+window.buyTurbo=()=>{ if(step!==3||count<1000)return; count-=1000; turbo=true; step=4; startTurbo(); updateShop(); save(); };
+window.rebirth=()=>{ if(step!==4||count<10000)return;
+rebirths++; count=0; mult=1; auto=false; turbo=false; step=0;
+updateBall(); updateShop(); save(); location.reload();
+};
+
+/* =========================
+   RANK
+========================= */
+loadRank=function(){
   const q=query(collection(db,"users"),orderBy("count","desc"),limit(10));
 
   onSnapshot(q,(snap)=>{
@@ -340,36 +405,11 @@ function loadRank(){
       i++;
     });
   });
-}
-
-/* SHOP */
-function updateShop(){
-  const b=[
-    {id:"b2",step:0},
-    {id:"bAuto",step:1},
-    {id:"b3",step:2},
-    {id:"bTurbo",step:3}
-  ];
-  b.forEach(x=>{
-    document.getElementById(x.id).className=(step===x.step)?"active":"locked";
-  });
-}
-
-/* AUTO */
-function startAuto(){ setInterval(()=>{ if(!jumping) jump(); },1500); }
-function startTurbo(){ setInterval(()=>{ if(!jumping) jump(); },700); }
-
-/* SHOP ACTIONS */
-window.buy2=()=>{ if(step!==0||count<100)return; count-=100; mult=2; step=1; updateShop(); save(); };
-window.buyAuto=()=>{ if(step!==1||count<300)return; count-=300; auto=true; step=2; startAuto(); updateShop(); save(); };
-window.buy3=()=>{ if(step!==2||count<600)return; count-=600; mult=3; step=3; updateShop(); save(); };
-window.buyTurbo=()=>{ if(step!==3||count<1000)return; count-=1000; turbo=true; step=4; startTurbo(); updateShop(); save(); };
-window.rebirth=()=>{ if(step!==4||count<10000)return;
-rebirths++; count=0; mult=1; auto=false; turbo=false; step=0;
-updateBall(); updateShop(); save(); location.reload();
 };
 
-/* 🔥 FIX KTÓRY NAPRAWIA TWÓJ BŁĄD */
+/* =========================
+   EXPORT FIX (IMPORTANT)
+========================= */
 window.updateShop = updateShop;
 window.updateUI = updateUI;
 window.updateBall = updateBall;
