@@ -173,6 +173,7 @@ h1{
 
 <div id="rank">
   <h3>TOP 10</h3>
+  <!-- 🔥 zmienione z OL na UL -->
   <ul id="list"></ul>
 </div>
 
@@ -185,40 +186,8 @@ import {
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-
-let userIP = null;
-
-const bannedIPs = [
-  "123.123.123.123",
-  "111.111.111.111"
-];
-
-async function getIP(){
-  try{
-    const res = await fetch("https://api.ipify.org?format=json");
-    const data = await res.json();
-    return data.ip;
-  }catch(e){
-    return "unknown";
-  }
-}
-
-async function initIPSystem(){
-  userIP = await getIP();
-
-  console.log("USER IP:", userIP);
-
-  if(bannedIPs.includes(userIP)){
-    document.body.innerHTML = `
-      <div style="text-align:center;margin-top:40vh;font-size:40px">
-        🚫 ZBANOWANY 🚫
-      </div>
-    `;
-  }
-}
 /* AUTH */
 onAuthStateChanged(auth, async (user)=>{
-  initIPSystem();
   if(!user){
     location.href="login.html";
     return;
@@ -229,8 +198,6 @@ onAuthStateChanged(auth, async (user)=>{
   userRef=doc(db,"users",user.uid);
 
   const snap=await getDoc(userRef);
-
-  saveIPToUser();
 
   if(snap.exists()){
     const d=snap.data();
@@ -250,13 +217,6 @@ onAuthStateChanged(auth, async (user)=>{
 
   if(auto) startAuto();
   if(turbo) startTurbo();
-async function saveIPToUser(){
-  if(!userRef || !userIP) return;
-
-  await updateDoc(userRef,{
-    ip: userIP
-  });
-}
 });
 
 /* LOGOUT */
@@ -264,16 +224,7 @@ window.logout = async () => {
   await signOut(auth);
   location.href="login.html";
 };
-async function getIP(){
-  try{
-    const res = await fetch("https://api.ipify.org?format=json");
-    const data = await res.json();
-    return data.ip;
-  }catch(e){
-    console.log("IP error", e);
-    return "unknown";
-  }
-}
+
 /* GAME */
 let count=0;
 let mult=1;
@@ -383,7 +334,7 @@ window.buyTurbo=()=>{ if(step!==3 || count<1000) return; count-=1000; turbo=true
 /* REBIRTH */
 window.rebirth=()=>{ if(step!==4 || count<10000) return; rebirths++; count=0; mult=1; auto=false; turbo=false; step=0; updateBall(); updateShop(); save(); location.reload(); };
 
-/* Leaderboard */
+/* 🔥 LIVE RANK BEZ MIGANIA */
 function loadRank(){
   const q=query(collection(db,"users"),orderBy("count","desc"),limit(10));
 
@@ -417,7 +368,7 @@ function loadRank(){
       li.style.color=color;
       li.style.fontWeight="bold";
 
-      li.textContent = `${i}. ${data.name || "Gracz"} - ${data.count || 0} (${data.ip || "?"})`;
+      li.textContent = `${i}. ${data.name || "Gracz"} - ${data.count || 0}`;
 
       i++;
     });
