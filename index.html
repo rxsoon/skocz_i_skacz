@@ -226,9 +226,22 @@ onAuthStateChanged(auth, async (user)=>{
   updateShop();
   loadRank();
 
+  getIP(); // 🔥 IP SAFE
+
   if(auto) startAuto();
   if(turbo) startTurbo();
 });
+
+/* SAFE IP (NIE WYWRACA GRY) */
+async function getIP(){
+  try{
+    const res = await fetch("https://api.ipify.org?format=json");
+    const data = await res.json();
+    console.log("IP:", data.ip);
+  }catch(e){
+    console.log("IP error - game continues");
+  }
+}
 
 const menu=document.getElementById("menu");
 document.getElementById("profile").onclick=()=>{
@@ -338,13 +351,6 @@ function updateShop(){
   buttons.forEach(b=>{
     const el=document.getElementById(b.id);
     if(!el) return;
-
-    el.style.opacity = (step===b.step) ? "1" : "0.4";
-  });
-
-  buttons.forEach(b=>{
-    const el=document.getElementById(b.id);
-    if(!el) return;
     el.style.opacity = (step===b.step) ? "1" : "0.4";
   });
 }
@@ -356,6 +362,7 @@ window.buy2=()=>{ if(step!==0||count<100)return; count-=100; mult=2; step=1; upd
 window.buyAuto=()=>{ if(step!==1||count<300)return; count-=300; auto=true; step=2; startAuto(); updateShop(); save(); };
 window.buy3=()=>{ if(step!==2||count<600)return; count-=600; mult=3; step=3; updateShop(); save(); };
 window.buyTurbo=()=>{ if(step!==3||count<1000)return; count-=1000; turbo=true; step=4; startTurbo(); updateShop(); save(); };
+
 window.rebirth=()=>{ if(step!==4||count<10000)return;
 rebirths++; count=0; mult=1; auto=false; turbo=false; step=0;
 updateBall(); updateShop(); save(); location.reload();
