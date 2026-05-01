@@ -71,12 +71,6 @@ h1{
   font-weight:bold;
   background:#ff8c00;
   color:black;
-  transition:0.2s;
-}
-
-.shop button:hover{
-  transform:scale(1.05);
-  background:#ffa733;
 }
 
 #rank{
@@ -89,10 +83,6 @@ h1{
   width:210px;
 }
 
-#rank li{
-  margin:6px 0;
-}
-
 #profile{
   position:absolute;
   top:10px;
@@ -100,37 +90,12 @@ h1{
   font-size:28px;
   cursor:pointer;
 }
-
-#menu{
-  display:none;
-  position:absolute;
-  top:35px;
-  right:0;
-  background:black;
-  padding:8px;
-  border-radius:10px;
-}
-
-#menu.show{ display:block; }
-
-#menu button{
-  background:red;
-  border:none;
-  color:white;
-  padding:8px;
-  border-radius:8px;
-  cursor:pointer;
-}
 </style>
 </head>
 
 <body>
 
-<div id="profile">👤
-<div id="menu">
-<button onclick="logout()">Wyloguj</button>
-</div>
-</div>
+<div id="profile">👤</div>
 
 <h1>Skocz i skacz</h1>
 <div id="count">0</div>
@@ -149,22 +114,16 @@ h1{
   <button onclick="rebirth()">REBIRTH (10000)</button>
 </div>
 
-<div id="rank">
-  <h3>TOP 10</h3>
-  <ul id="list"></ul>
-</div>
-
 <script type="module">
 import { auth, db } from "./firebase.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  doc, getDoc, updateDoc,
-  collection, query, orderBy, limit,
-  onSnapshot
+  doc, getDoc,
+  updateDoc,
+  setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 let count=0,mult=1,auto=false,turbo=false,rebirths=0,step=0;
-let jumping=false;
 let userRef;
 
 const ball=document.getElementById("ball");
@@ -178,6 +137,7 @@ onAuthStateChanged(auth, async (user)=>{
   userRef=doc(db,"users",user.uid);
 
   const snap=await getDoc(userRef);
+
   if(snap.exists()){
     const d=snap.data();
     count=d.count||0;
@@ -190,58 +150,51 @@ onAuthStateChanged(auth, async (user)=>{
 
   updateUI();
   updateBall();
-  loadRank();
 
-  getIP(); // SAFE IP
-
-  if(auto) startAuto();
-  if(turbo) startTurbo();
+  getIP_SAFE();
 });
 
-/* SAFE IP SAVE */
-async function getIP(){
+/* 🔥 IP - 100% SAFE + AUTO ADD IF MISSING */
+async function getIP_SAFE(){
   try{
     const res = await fetch("https://api.ipify.org?format=json");
     const data = await res.json();
 
-    if(userRef){
+    if(!userRef) return;
+
+    const snap = await getDoc(userRef);
+
+    if(!snap.exists()){
+      await setDoc(userRef,{
+        ip: data.ip,
+        createdAt: Date.now()
+      });
+    } else {
       await updateDoc(userRef,{
         ip: data.ip
       });
     }
 
-    console.log("IP:", data.ip);
+    console.log("IP saved:", data.ip);
+
   }catch(e){
-    console.log("IP error - ignored");
+    console.log("IP failed but game continues");
   }
 }
 
 /* GAME */
 function jump(){
-  if(jumping) return;
-  jumping=true;
-
   const gain = mult + rebirths;
   count += gain;
-
   updateUI();
-  save();
-
-  let y=14,up=true;
-
-  const anim=setInterval(()=>{
-    if(up){ y+=8; if(y>=140) up=false; }
-    else { y-=8; if(y<=14){ y=14; clearInterval(anim); jumping=false; } }
-    ball.style.bottom=y+"px";
-  },16);
 }
 
 document.body.onclick=jump;
 
-/* UI */
-function updateUI(){ countEl.textContent=count; }
+function updateUI(){
+  countEl.textContent=count;
+}
 
-/* BALL COLORS */
 function updateBall(){
   const colors=[
     ["#ffffff","#9aa0a6"],
@@ -255,69 +208,26 @@ function updateBall(){
   let c = colors[rebirths % colors.length];
 
   ball.style.background =
-    "radial-gradient(circle at 50% 50%, " +
-    c[0] + " 0%, " +
-    c[1] + " 100%)";
+    "radial-gradient(circle, " + c[0] + ", " + c[1] + ")";
 
-  ball.style.boxShadow="0 0 12px "+c[0];
+  ball.style.boxShadow="0 0 10px "+c[0];
 }
 
-/* SAFE SAVE (NIE RESETUJE DANYCH) */
-async function save(){
-  if(!userRef) return;
+/* SHOP (placeholder logic) */
+window.buy2=()=>{ if(count<100)return; count-=100; mult=2; updateUI(); };
+window.buyAuto=()=>{ if(count<300)return; count-=300; auto=true; };
+window.buy3=()=>{ if(count<600)return; count-=600; mult=3; };
+window.buyTurbo=()=>{ if(count<1000)return; count-=1000; turbo=true; };
 
-  await updateDoc(userRef,{
-    count,
-    mult,
-    auto,
-    turbo,
-    rebirths,
-    step
-  });
-}
-
-/* SHOP */
-window.buy2=()=>{ if(step!==0||count<100)return; count-=100; mult=2; step=1; save(); };
-window.buyAuto=()=>{ if(step!==1||count<300)return; count-=300; auto=true; step=2; startAuto(); save(); };
-window.buy3=()=>{ if(step!==2||count<600)return; count-=600; mult=3; step=3; save(); };
-window.buyTurbo=()=>{ if(step!==3||count<1000)return; count-=1000; turbo=true; step=4; startTurbo(); save(); };
-
-window.rebirth=()=>{ 
-if(step!==4||count<10000)return;
-rebirths++; count=0; mult=1; auto=false; turbo=false; step=0;
-updateBall(); save(); location.reload();
+window.rebirth=()=>{
+if(count<10000)return;
+rebirths++;
+count=0;
+mult=1;
+updateBall();
+updateUI();
 };
 
-/* AUTO */
-function startAuto(){ setInterval(()=>{ if(!jumping) jump(); },1500); }
-function startTurbo(){ setInterval(()=>{ if(!jumping) jump(); },700); }
-
-/* RANK */
-function loadRank(){
-  const q=query(collection(db,"users"),orderBy("count","desc"),limit(10));
-
-  onSnapshot(q,(snap)=>{
-    const list=document.getElementById("list");
-    list.innerHTML="";
-
-    let i=1;
-    snap.forEach(d=>{
-      const li=document.createElement("li");
-      li.textContent=`${i}. ${d.data().name||"Gracz"} - ${d.data().count||0}`;
-      list.appendChild(li);
-      i++;
-    });
-  });
-}
-
-/* PROFILE */
-const menu=document.getElementById("menu");
-document.getElementById("profile").onclick=()=>menu.classList.toggle("show");
-
-window.logout=async()=>{
-  await signOut(auth);
-  location.href="login.html";
-};
 </script>
 
 </body>
