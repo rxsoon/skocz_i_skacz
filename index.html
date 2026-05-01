@@ -294,14 +294,23 @@ function spawnParticles(){
 function updateUI(){ countEl.textContent=count; }
 
 function updateBall(){
-  const gradients = [
-    "linear-gradient(135deg,#666,#999)",
-    "linear-gradient(135deg,#4da3ff,#1e60ff)",
-    "linear-gradient(135deg,#00ff88,#00b36b)",
-    "linear-gradient(135deg,#ffcc00,#ff8800)",
-    "linear-gradient(135deg,#b84dff,#6a00ff)",
-    "linear-gradient(135deg,#ff4d4d,#ff0000)"
+  const colors = [
+    ["#666","#999"],
+    ["#4da3ff","#1e60ff"],
+    ["#00ff88","#00b36b"],
+    ["#ffcc00","#ff8800"],
+    ["#b84dff","#6a00ff"],
+    ["#ff4d4d","#ff0000"],
+    ["#00e5ff","#0066ff"],
+    ["#ff66cc","#9900ff"]
   ];
+
+  let r = rebirths % colors.length;
+  let c = colors[r];
+
+  ball.style.background = `radial-gradient(circle at 30% 30%, ${c[0]}, ${c[1]})`;
+  ball.style.boxShadow = `0 0 25px ${c[0]}`;
+}
 
   ball.style.background = gradients[Math.min(rebirths,5)];
 }
