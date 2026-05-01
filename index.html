@@ -26,7 +26,6 @@ h1{
   font-size:45px;
 }
 
-/* GAME */
 .scene{
   position:absolute;
   top:55%;
@@ -46,14 +45,12 @@ h1{
   width:85px;
   height:85px;
   border-radius:50%;
-  background:gray;
   position:absolute;
   bottom:14px;
   left:50%;
   transform:translateX(-50%);
 }
 
-/* SHOP */
 .shop{
   position:absolute;
   right:20px;
@@ -74,7 +71,6 @@ h1{
   font-weight:bold;
 }
 
-/* RANK */
 #rank{
   position:absolute;
   left:20px;
@@ -89,7 +85,6 @@ h1{
   margin:6px 0;
 }
 
-/* PROFILE */
 #profile{
   position:absolute;
   top:10px;
@@ -122,7 +117,6 @@ h1{
   cursor:pointer;
 }
 
-/* FLOAT */
 .float-number{
   position:absolute;
   font-size:22px;
@@ -138,7 +132,6 @@ h1{
   100%{opacity:0; transform:translateY(-80px);}
 }
 
-/* PARTICLES */
 .particle{
   position:absolute;
   width:6px;
@@ -196,7 +189,6 @@ import {
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-/* STATE */
 let count=0,mult=1,auto=false,turbo=false,rebirths=0,step=0;
 let jumping=false;
 let userRef;
@@ -204,7 +196,6 @@ let userRef;
 const ball=document.getElementById("ball");
 const countEl=document.getElementById("count");
 
-/* LOGIN */
 onAuthStateChanged(auth, async (user)=>{
   if(!user){ location.href="login.html"; return; }
 
@@ -231,7 +222,6 @@ onAuthStateChanged(auth, async (user)=>{
   if(turbo) startTurbo();
 });
 
-/* PROFILE */
 const menu=document.getElementById("menu");
 document.getElementById("profile").onclick=()=>{
   menu.classList.toggle("show");
@@ -242,7 +232,6 @@ window.logout=async()=>{
   location.href="login.html";
 };
 
-/* JUMP */
 function jump(){
   if(jumping) return;
   jumping=true;
@@ -267,7 +256,6 @@ function jump(){
 
 document.body.onclick=jump;
 
-/* ✅ FIXED FLOAT */
 function spawnFloat(v){
   const el=document.createElement("div");
   el.className="float-number";
@@ -282,7 +270,6 @@ function spawnFloat(v){
   setTimeout(()=>el.remove(),800);
 }
 
-/* ✅ FIXED PARTICLES */
 function spawnParticles(){
   const r=ball.getBoundingClientRect();
 
@@ -304,24 +291,26 @@ function spawnParticles(){
   }
 }
 
-/* UI */
 function updateUI(){ countEl.textContent=count; }
 
 function updateBall(){
-  ball.style.background =
-    rebirths===0?"gray":
-    rebirths===1?"#4da3ff":
-    rebirths===2?"#00ff88":
-    rebirths===3?"#ffcc00":"gold";
+  const gradients = [
+    "linear-gradient(135deg,#666,#999)",
+    "linear-gradient(135deg,#4da3ff,#1e60ff)",
+    "linear-gradient(135deg,#00ff88,#00b36b)",
+    "linear-gradient(135deg,#ffcc00,#ff8800)",
+    "linear-gradient(135deg,#b84dff,#6a00ff)",
+    "linear-gradient(135deg,#ff4d4d,#ff0000)"
+  ];
+
+  ball.style.background = gradients[Math.min(rebirths,5)];
 }
 
-/* SAVE */
 async function save(){
   if(!userRef) return;
   await updateDoc(userRef,{count,mult,auto,turbo,rebirths,step});
 }
 
-/* SHOP */
 function updateShop(){
   const buttons=[
     {id:"b2",step:0},
@@ -333,16 +322,13 @@ function updateShop(){
   buttons.forEach(b=>{
     const el=document.getElementById(b.id);
     if(!el) return;
-
     el.style.opacity = (step===b.step) ? "1" : "0.4";
   });
 }
 
-/* AUTO / TURBO */
 function startAuto(){ setInterval(()=>{ if(!jumping) jump(); },1500); }
 function startTurbo(){ setInterval(()=>{ if(!jumping) jump(); },700); }
 
-/* SHOP ACTIONS */
 window.buy2=()=>{ if(step!==0||count<100)return; count-=100; mult=2; step=1; updateShop(); save(); };
 window.buyAuto=()=>{ if(step!==1||count<300)return; count-=300; auto=true; step=2; startAuto(); updateShop(); save(); };
 window.buy3=()=>{ if(step!==2||count<600)return; count-=600; mult=3; step=3; updateShop(); save(); };
@@ -352,7 +338,6 @@ rebirths++; count=0; mult=1; auto=false; turbo=false; step=0;
 updateBall(); updateShop(); save(); location.reload();
 };
 
-/* RANK */
 function loadRank(){
   const q=query(collection(db,"users"),orderBy("count","desc"),limit(10));
 
@@ -374,7 +359,6 @@ function loadRank(){
     });
   });
 }
-
 </script>
 
 </body>
