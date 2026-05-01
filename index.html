@@ -335,10 +335,10 @@ function updateBall(){
   let r = rebirths % colors.length;
   let c = colors[r];
 
-  ball.style.background =
-    "radial-gradient(circle at 50% 50%, " +
-    c[0] + " 0%, " +
-    c[1] + " 100%)";
+ball.style.background =
+  "radial-gradient(circle at 50% 50%, " +
+  c[0] + " 20%, " +
+  c[1] + " 100%)";
 
   ball.style.boxShadow = "0 0 12px " + c[0];
 }
