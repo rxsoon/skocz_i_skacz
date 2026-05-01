@@ -8,14 +8,36 @@
 body{
   margin:0;
   height:100vh;
-  background:radial-gradient(circle,#1e1e2f,#0a0a12);
   font-family:Arial;
   color:white;
   overflow:hidden;
   display:none;
 
-  /* 🔧 FIX: ważne dla float/particles */
+  /* 🔥 TWOJE TŁO WRACA */
+  background:radial-gradient(circle,#1e1e2f,#0a0a12);
   position:relative;
+}
+
+/* 🔥 ANIMOWANE TŁO */
+#bg{
+  position:fixed;
+  inset:0;
+  z-index:-2;
+}
+
+.glow{
+  position:absolute;
+  width:400px;
+  height:400px;
+  background:radial-gradient(circle,rgba(0,255,200,0.15),transparent 70%);
+  animation:move 10s infinite linear;
+  filter:blur(20px);
+}
+
+@keyframes move{
+  0%{transform:translate(0,0);}
+  50%{transform:translate(300px,200px);}
+  100%{transform:translate(0,0);}
 }
 
 h1{
@@ -42,7 +64,6 @@ h1{
   height:14px;
   background:#999;
   border-radius:12px;
-  position:relative;
 }
 
 .ball{
@@ -75,18 +96,6 @@ h1{
   border:none;
   border-radius:10px;
   font-weight:bold;
-  cursor:pointer;
-}
-
-.active{
-  background:linear-gradient(135deg,#ff6600,#ff8800);
-  color:white;
-}
-
-.locked{
-  background:gray;
-  opacity:0.4;
-  cursor:not-allowed;
 }
 
 /* RANK */
@@ -100,10 +109,7 @@ h1{
   width:210px;
 }
 
-#rank li{
-  margin:6px 0;
-  font-size:16px;
-}
+#rank li{ margin:6px 0; }
 
 /* PROFILE */
 #profile{
@@ -125,9 +131,7 @@ h1{
   border-radius:10px;
 }
 
-#menu.show{
-  display:block;
-}
+#menu.show{ display:block; }
 
 #menu button{
   background:red;
@@ -138,7 +142,7 @@ h1{
   cursor:pointer;
 }
 
-/* FLOAT +1 */
+/* FLOAT + PARTICLES (WRÓCONE) */
 .float-number{
   position:absolute;
   font-size:22px;
@@ -154,7 +158,6 @@ h1{
   100%{opacity:0; transform:translateY(-80px);}
 }
 
-/* PARTICLES */
 .particle{
   position:absolute;
   width:6px;
@@ -174,6 +177,10 @@ h1{
 </head>
 
 <body>
+
+<div id="bg">
+  <div class="glow"></div>
+</div>
 
 <div id="profile">👤
 <div id="menu">
@@ -228,7 +235,6 @@ onAuthStateChanged(auth, async (user)=>{
   userRef=doc(db,"users",user.uid);
 
   const snap=await getDoc(userRef);
-
   if(snap.exists()){
     const d=snap.data();
     count=d.count||0;
@@ -281,7 +287,7 @@ function jump(){
 
 document.body.onclick=jump;
 
-/* 🔧 FIXED FLOAT */
+/* FLOAT */
 function spawnFloat(v){
   const el=document.createElement("div");
   el.className="float-number";
@@ -296,7 +302,7 @@ function spawnFloat(v){
   setTimeout(()=>el.remove(),800);
 }
 
-/* 🔧 FIXED PARTICLES */
+/* PARTICLES */
 function spawnParticles(){
   const r=ball.getBoundingClientRect();
 
