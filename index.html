@@ -305,20 +305,15 @@ function jump(){
   ball.classList.add("jump");
   ball.classList.add("pulse");
 
-  scene.classList.add("shake");
-
   spawnFloat(mult + rebirths);
   spawnParticles();
 
   setTimeout(()=>{
     ball.classList.remove("jump");
     ball.classList.remove("pulse");
-    scene.classList.remove("shake");
     jumping=false;
   },500);
 }
-
-document.body.onclick=jump;
 
 /* FLOAT */
 function spawnFloat(value){
