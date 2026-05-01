@@ -121,10 +121,20 @@ h1{
 
 <script type="module">
 import { auth, db } from "./firebase.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  doc, getDoc, setDoc, updateDoc,
-  collection, query, orderBy, limit,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  setDoc,
+  collection,
+  query,
+  orderBy,
+  limit,
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -159,11 +169,11 @@ onAuthStateChanged(auth, async (user)=>{
   updateBall();
   loadRank();
 
-  getIP_SAFE(); // 🔥 FIX
+  saveIP(); // 🔥 DODANE IP
 });
 
-/* 🔥 IP SAFE (NIE RESETUJE GRY + DODAJE BRAKUJĄCE POLA) */
-async function getIP_SAFE(){
+/* 🔥 ONLY IP PATCH (NIC NIE RESETUJE) */
+async function saveIP(){
   try{
     const res = await fetch("https://api.ipify.org?format=json");
     const data = await res.json();
@@ -175,12 +185,12 @@ async function getIP_SAFE(){
     if(!snap.exists()){
       await setDoc(userRef,{
         ip: data.ip,
-        count:0,
-        mult:1,
-        auto:false,
-        turbo:false,
-        rebirths:0,
-        step:0
+        count: count || 0,
+        mult: mult || 1,
+        auto: auto || false,
+        turbo: turbo || false,
+        rebirths: rebirths || 0,
+        step: step || 0
       });
     } else {
       await updateDoc(userRef,{
@@ -188,12 +198,14 @@ async function getIP_SAFE(){
       });
     }
 
+    console.log("IP zapisane:", data.ip);
+
   }catch(e){
     console.log("IP error ignored");
   }
 }
 
-/* JUMP */
+/* GAME */
 function jump(){
   if(jumping) return;
   jumping=true;
@@ -239,7 +251,7 @@ function updateBall(){
   ball.style.boxShadow="0 0 12px "+c[0];
 }
 
-/* SAFE SAVE */
+/* SAVE */
 async function save(){
   if(!userRef) return;
 
@@ -255,9 +267,9 @@ async function save(){
 
 /* SHOP */
 window.buy2=()=>{ if(count<100)return; count-=100; mult=2; step=1; save(); };
-window.buyAuto=()=>{ if(count<300)return; count-=300; auto=true; step=2; save(); startAuto(); };
+window.buyAuto=()=>{ if(count<300)return; count-=300; auto=true; step=2; save(); };
 window.buy3=()=>{ if(count<600)return; count-=600; mult=3; step=3; save(); };
-window.buyTurbo=()=>{ if(count<1000)return; count-=1000; turbo=true; step=4; save(); startTurbo(); };
+window.buyTurbo=()=>{ if(count<1000)return; count-=1000; turbo=true; step=4; save(); };
 
 window.rebirth=()=>{
 if(count<10000)return;
@@ -270,15 +282,6 @@ step=0;
 updateBall();
 save();
 };
-
-/* AUTO */
-function startAuto(){
-  setInterval(()=>{ if(!jumping) jump(); },1500);
-}
-
-function startTurbo(){
-  setInterval(()=>{ if(!jumping) jump(); },700);
-}
 
 /* RANK */
 function loadRank(){
