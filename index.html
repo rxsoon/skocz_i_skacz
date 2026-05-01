@@ -5,6 +5,7 @@
 <title>Skocz i skacz</title>
 
 <style>
+
 body{
   margin:0;
   height:100vh;
@@ -52,14 +53,24 @@ h1{
   bottom:14px;
   left:50%;
   transform:translateX(-50%);
+  will-change:transform;
 }
 
+/* 🔥 FIXED JUMP */
 .jump{
   animation:jump 0.5s ease-out;
 }
 
 @keyframes jump{
-  50%{transform:translateX(-50%) translateY(-140px);}
+  0%{
+    transform:translateX(-50%) translateY(0);
+  }
+  50%{
+    transform:translateX(-50%) translateY(-140px);
+  }
+  100%{
+    transform:translateX(-50%) translateY(0);
+  }
 }
 
 /* SHOP */
@@ -185,6 +196,7 @@ h1{
   50%{transform:translateX(-50%) scale(1.2);}
   100%{transform:translateX(-50%) scale(1);}
 }
+
 </style>
 </head>
 
@@ -241,7 +253,6 @@ let userRef;
 
 const ball=document.getElementById("ball");
 const countEl=document.getElementById("count");
-const scene=document.querySelector(".scene");
 
 /* AUTH */
 onAuthStateChanged(auth, async (user)=>{
@@ -275,7 +286,7 @@ onAuthStateChanged(auth, async (user)=>{
   if(turbo) startTurbo();
 });
 
-/* JUMP */
+/* CLICK */
 function jump(){
   if(jumping) return;
 
@@ -301,7 +312,7 @@ function jump(){
 
 document.body.onclick=jump;
 
-/* EFFECTS */
+/* FLOAT */
 function spawnFloat(value){
   const el=document.createElement("div");
   el.className="float-number";
@@ -316,6 +327,7 @@ function spawnFloat(value){
   setTimeout(()=>el.remove(),800);
 }
 
+/* PARTICLES */
 function spawnParticles(){
   const rect=ball.getBoundingClientRect();
 
@@ -346,7 +358,6 @@ function updateBall(){
   if(rebirths===0) ball.style.background="gray";
   else if(rebirths===1) ball.style.background="#4da3ff";
   else if(rebirths===2) ball.style.background="#00ff88";
-  else if(rebirths===3) ball.style.background="#ffcc00";
   else ball.style.background="gold";
 }
 
@@ -356,8 +367,8 @@ async function save(){
   await updateDoc(userRef,{count,mult,auto,turbo,rebirths,step});
 }
 
-/* 🔥 FIX NA PROBLEM */
-window.updateShop = function(){
+/* SHOP FIX GLOBAL */
+window.updateShop=function(){
   const buttons=[
     {id:"b2", step:0},
     {id:"bAuto", step:1},
