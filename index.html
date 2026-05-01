@@ -173,7 +173,6 @@ h1{
 
 <div id="rank">
   <h3>TOP 10</h3>
-  <!-- 🔥 zmienione z OL na UL -->
   <ul id="list"></ul>
 </div>
 
@@ -334,7 +333,7 @@ window.buyTurbo=()=>{ if(step!==3 || count<1000) return; count-=1000; turbo=true
 /* REBIRTH */
 window.rebirth=()=>{ if(step!==4 || count<10000) return; rebirths++; count=0; mult=1; auto=false; turbo=false; step=0; updateBall(); updateShop(); save(); location.reload(); };
 
-/* 🔥 LIVE RANK BEZ MIGANIA */
+/* RANK */
 function loadRank(){
   const q=query(collection(db,"users"),orderBy("count","desc"),limit(10));
 
@@ -374,6 +373,37 @@ function loadRank(){
     });
   });
 }
+</script>
+
+<!-- 🔥 DODANE: IP TRACKER (NIC NIE ZMIENIONE W TWOIM KODZIE) -->
+<script type="module">
+import { auth, db } from "./firebase.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+async function getIP(){
+  try{
+    const res = await fetch("https://api.ipify.org?format=json");
+    const data = await res.json();
+    return data.ip;
+  }catch(e){
+    return "unknown";
+  }
+}
+
+onAuthStateChanged(auth, async (user)=>{
+  if(!user) return;
+
+  const ip = await getIP();
+
+  const userRef = doc(db,"users",user.uid);
+
+  await setDoc(userRef,{
+    ip: ip
+  }, { merge: true });
+
+  console.log("IP zapisane:", ip);
+});
 </script>
 
 </body>
