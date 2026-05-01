@@ -99,7 +99,6 @@ h1{
   right:10px;
   font-size:28px;
   cursor:pointer;
-  z-index:999;
 }
 
 #menu{
@@ -112,9 +111,7 @@ h1{
   border-radius:10px;
 }
 
-#menu.show{
-  display:block;
-}
+#menu.show{ display:block; }
 
 #menu button{
   background:red;
@@ -123,37 +120,6 @@ h1{
   padding:8px;
   border-radius:8px;
   cursor:pointer;
-}
-
-.float-number{
-  position:absolute;
-  font-size:22px;
-  font-weight:bold;
-  color:#00ff88;
-  animation:floatUp 0.8s forwards;
-  pointer-events:none;
-  z-index:9999;
-}
-
-@keyframes floatUp{
-  0%{opacity:1;}
-  100%{opacity:0; transform:translateY(-80px);}
-}
-
-.particle{
-  position:absolute;
-  width:6px;
-  height:6px;
-  background:white;
-  border-radius:50%;
-  animation:fly 0.5s forwards;
-  pointer-events:none;
-  z-index:9999;
-}
-
-@keyframes fly{
-  0%{opacity:1;}
-  100%{opacity:0; transform:translate(var(--x),var(--y));}
 }
 </style>
 </head>
@@ -176,10 +142,10 @@ h1{
 </div>
 
 <div class="shop">
-  <button id="b2" onclick="buy2()">x2 (100)</button>
-  <button id="bAuto" onclick="buyAuto()">Auto (300)</button>
-  <button id="b3" onclick="buy3()">x3 (600)</button>
-  <button id="bTurbo" onclick="buyTurbo()">Turbo (1000)</button>
+  <button onclick="buy2()">x2 (100)</button>
+  <button onclick="buyAuto()">Auto (300)</button>
+  <button onclick="buy3()">x3 (600)</button>
+  <button onclick="buyTurbo()">Turbo (1000)</button>
   <button onclick="rebirth()">REBIRTH (10000)</button>
 </div>
 
@@ -204,6 +170,7 @@ let userRef;
 const ball=document.getElementById("ball");
 const countEl=document.getElementById("count");
 
+/* LOGIN */
 onAuthStateChanged(auth, async (user)=>{
   if(!user){ location.href="login.html"; return; }
 
@@ -223,36 +190,33 @@ onAuthStateChanged(auth, async (user)=>{
 
   updateUI();
   updateBall();
-  updateShop();
   loadRank();
 
-  getIP(); // 🔥 IP SAFE
+  getIP(); // SAFE IP
 
   if(auto) startAuto();
   if(turbo) startTurbo();
 });
 
-/* SAFE IP (NIE WYWRACA GRY) */
+/* SAFE IP SAVE */
 async function getIP(){
   try{
     const res = await fetch("https://api.ipify.org?format=json");
     const data = await res.json();
+
+    if(userRef){
+      await updateDoc(userRef,{
+        ip: data.ip
+      });
+    }
+
     console.log("IP:", data.ip);
   }catch(e){
-    console.log("IP error - game continues");
+    console.log("IP error - ignored");
   }
 }
 
-const menu=document.getElementById("menu");
-document.getElementById("profile").onclick=()=>{
-  menu.classList.toggle("show");
-};
-
-window.logout=async()=>{
-  await signOut(auth);
-  location.href="login.html";
-};
-
+/* GAME */
 function jump(){
   if(jumping) return;
   jumping=true;
@@ -262,9 +226,6 @@ function jump(){
 
   updateUI();
   save();
-
-  spawnFloat(gain);
-  spawnParticles();
 
   let y=14,up=true;
 
@@ -277,45 +238,12 @@ function jump(){
 
 document.body.onclick=jump;
 
-function spawnFloat(v){
-  const el=document.createElement("div");
-  el.className="float-number";
-  el.textContent="+"+v;
-
-  const r=ball.getBoundingClientRect();
-
-  el.style.left=(r.left + r.width/2) + "px";
-  el.style.top=(r.top + window.scrollY) + "px";
-
-  document.body.appendChild(el);
-  setTimeout(()=>el.remove(),800);
-}
-
-function spawnParticles(){
-  const r=ball.getBoundingClientRect();
-
-  for(let i=0;i<10;i++){
-    const p=document.createElement("div");
-    p.className="particle";
-
-    const x=(Math.random()-0.5)*200;
-    const y=(Math.random()-0.5)*200;
-
-    p.style.left=(r.left + r.width/2) + "px";
-    p.style.top=(r.top + r.height/2 + window.scrollY) + "px";
-
-    p.style.setProperty("--x",x+"px");
-    p.style.setProperty("--y",y+"px");
-
-    document.body.appendChild(p);
-    setTimeout(()=>p.remove(),500);
-  }
-}
-
+/* UI */
 function updateUI(){ countEl.textContent=count; }
 
+/* BALL COLORS */
 function updateBall(){
-  const colors = [
+  const colors=[
     ["#ffffff","#9aa0a6"],
     ["#4da3ff","#1e60ff"],
     ["#00ff88","#00a86b"],
@@ -324,50 +252,47 @@ function updateBall(){
     ["#ff4d4d","#b30000"]
   ];
 
-  let r = rebirths % colors.length;
-  let c = colors[r];
+  let c = colors[rebirths % colors.length];
 
   ball.style.background =
     "radial-gradient(circle at 50% 50%, " +
     c[0] + " 0%, " +
     c[1] + " 100%)";
 
-  ball.style.boxShadow = "0 0 12px " + c[0];
+  ball.style.boxShadow="0 0 12px "+c[0];
 }
 
+/* SAFE SAVE (NIE RESETUJE DANYCH) */
 async function save(){
   if(!userRef) return;
-  await updateDoc(userRef,{count,mult,auto,turbo,rebirths,step});
-}
 
-function updateShop(){
-  const buttons=[
-    {id:"b2",step:0},
-    {id:"bAuto",step:1},
-    {id:"b3",step:2},
-    {id:"bTurbo",step:3}
-  ];
-
-  buttons.forEach(b=>{
-    const el=document.getElementById(b.id);
-    if(!el) return;
-    el.style.opacity = (step===b.step) ? "1" : "0.4";
+  await updateDoc(userRef,{
+    count,
+    mult,
+    auto,
+    turbo,
+    rebirths,
+    step
   });
 }
 
+/* SHOP */
+window.buy2=()=>{ if(step!==0||count<100)return; count-=100; mult=2; step=1; save(); };
+window.buyAuto=()=>{ if(step!==1||count<300)return; count-=300; auto=true; step=2; startAuto(); save(); };
+window.buy3=()=>{ if(step!==2||count<600)return; count-=600; mult=3; step=3; save(); };
+window.buyTurbo=()=>{ if(step!==3||count<1000)return; count-=1000; turbo=true; step=4; startTurbo(); save(); };
+
+window.rebirth=()=>{ 
+if(step!==4||count<10000)return;
+rebirths++; count=0; mult=1; auto=false; turbo=false; step=0;
+updateBall(); save(); location.reload();
+};
+
+/* AUTO */
 function startAuto(){ setInterval(()=>{ if(!jumping) jump(); },1500); }
 function startTurbo(){ setInterval(()=>{ if(!jumping) jump(); },700); }
 
-window.buy2=()=>{ if(step!==0||count<100)return; count-=100; mult=2; step=1; updateShop(); save(); };
-window.buyAuto=()=>{ if(step!==1||count<300)return; count-=300; auto=true; step=2; startAuto(); updateShop(); save(); };
-window.buy3=()=>{ if(step!==2||count<600)return; count-=600; mult=3; step=3; updateShop(); save(); };
-window.buyTurbo=()=>{ if(step!==3||count<1000)return; count-=1000; turbo=true; step=4; startTurbo(); updateShop(); save(); };
-
-window.rebirth=()=>{ if(step!==4||count<10000)return;
-rebirths++; count=0; mult=1; auto=false; turbo=false; step=0;
-updateBall(); updateShop(); save(); location.reload();
-};
-
+/* RANK */
 function loadRank(){
   const q=query(collection(db,"users"),orderBy("count","desc"),limit(10));
 
@@ -378,17 +303,21 @@ function loadRank(){
     let i=1;
     snap.forEach(d=>{
       const li=document.createElement("li");
-
-      if(i===1) li.style.color="gold";
-      else if(i===2) li.style.color="silver";
-      else if(i===3) li.style.color="#cd7f32";
-
       li.textContent=`${i}. ${d.data().name||"Gracz"} - ${d.data().count||0}`;
       list.appendChild(li);
       i++;
     });
   });
 }
+
+/* PROFILE */
+const menu=document.getElementById("menu");
+document.getElementById("profile").onclick=()=>menu.classList.toggle("show");
+
+window.logout=async()=>{
+  await signOut(auth);
+  location.href="login.html";
+};
 </script>
 
 </body>
