@@ -5,6 +5,7 @@
 <title>Skocz i skacz</title>
 
 <style>
+
 body{
   margin:0;
   height:100vh;
@@ -13,6 +14,7 @@ body{
   color:white;
   overflow:hidden;
   display:none;
+  position:relative; /* 🔥 FIX */
 }
 
 h1{
@@ -143,9 +145,8 @@ h1{
   cursor:pointer;
 }
 
-/* ===== DODANE EFEKTY ===== */
+/* ===== EFFECTS ===== */
 
-/* FLOAT NUMBER */
 .float-number{
   position:absolute;
   font-size:22px;
@@ -153,6 +154,7 @@ h1{
   color:#00ff88;
   pointer-events:none;
   animation:floatUp 0.8s ease-out forwards;
+  z-index:9999;
 }
 
 @keyframes floatUp{
@@ -160,7 +162,6 @@ h1{
   100%{opacity:0; transform:translateY(-80px);}
 }
 
-/* PARTICLES */
 .particle{
   position:absolute;
   width:6px;
@@ -169,6 +170,7 @@ h1{
   background:white;
   pointer-events:none;
   animation:fly 0.5s linear forwards;
+  z-index:9999;
 }
 
 @keyframes fly{
@@ -176,20 +178,20 @@ h1{
   100%{opacity:0; transform:translate(var(--x), var(--y));}
 }
 
-/* SHAKE */
+/* SHAKE FIX (na scene zamiast body) */
 .shake{
   animation:shake 0.2s;
 }
 
 @keyframes shake{
-  0%{transform:translate(0,0);}
-  25%{transform:translate(3px,-3px);}
-  50%{transform:translate(-3px,3px);}
-  75%{transform:translate(3px,3px);}
-  100%{transform:translate(0,0);}
+  0%{transform:translate(-50%,-50%);}
+  25%{transform:translate(calc(-50% + 3px),calc(-50% - 3px));}
+  50%{transform:translate(calc(-50% - 3px),calc(-50% + 3px));}
+  75%{transform:translate(calc(-50% + 3px),calc(-50% + 3px));}
+  100%{transform:translate(-50%,-50%);}
 }
 
-/* PULSE BALL */
+/* PULSE */
 .pulse{
   animation:pulse 0.2s;
 }
@@ -237,11 +239,7 @@ h1{
 <script type="module">
 import { auth, db } from "./firebase.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import {
-  doc, getDoc, updateDoc,
-  collection, query, orderBy, limit,
-  onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { doc, getDoc, updateDoc, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 /* AUTH */
 onAuthStateChanged(auth, async (user)=>{
@@ -258,7 +256,6 @@ onAuthStateChanged(auth, async (user)=>{
 
   if(snap.exists()){
     const d=snap.data();
-
     count=d.count||0;
     mult=d.mult||1;
     auto=d.auto||false;
@@ -276,12 +273,6 @@ onAuthStateChanged(auth, async (user)=>{
   if(turbo) startTurbo();
 });
 
-/* LOGOUT */
-window.logout = async () => {
-  await signOut(auth);
-  location.href="login.html";
-};
-
 /* GAME */
 let count=0;
 let mult=1;
@@ -298,7 +289,9 @@ let turboInterval=null;
 
 const ball=document.getElementById("ball");
 const countEl=document.getElementById("count");
+const scene=document.querySelector(".scene");
 
+/* JUMP */
 function jump(){
   if(jumping) return;
 
@@ -310,36 +303,33 @@ function jump(){
   save();
 
   ball.classList.add("jump");
-
-  /* PULSE */
   ball.classList.add("pulse");
-  setTimeout(()=>ball.classList.remove("pulse"),200);
 
-  /* SHAKE */
-  document.body.classList.add("shake");
-  setTimeout(()=>document.body.classList.remove("shake"),200);
+  scene.classList.add("shake");
 
   spawnFloat(mult + rebirths);
   spawnParticles();
 
   setTimeout(()=>{
     ball.classList.remove("jump");
+    ball.classList.remove("pulse");
+    scene.classList.remove("shake");
     jumping=false;
   },500);
 }
 
 document.body.onclick=jump;
 
-/* FLOAT NUMBER */
+/* FLOAT */
 function spawnFloat(value){
-  const el = document.createElement("div");
-  el.className = "float-number";
-  el.textContent = `+${value}`;
+  const el=document.createElement("div");
+  el.className="float-number";
+  el.textContent=`+${value}`;
 
-  const rect = ball.getBoundingClientRect();
+  const rect=ball.getBoundingClientRect();
 
-  el.style.left = rect.left + rect.width/2 + "px";
-  el.style.top = rect.top + "px";
+  el.style.left=(rect.left + rect.width/2 + window.scrollX)+"px";
+  el.style.top=(rect.top + window.scrollY)+"px";
 
   document.body.appendChild(el);
 
@@ -348,7 +338,7 @@ function spawnFloat(value){
 
 /* PARTICLES */
 function spawnParticles(){
-  const rect = ball.getBoundingClientRect();
+  const rect=ball.getBoundingClientRect();
 
   for(let i=0;i<10;i++){
     const p=document.createElement("div");
@@ -357,8 +347,8 @@ function spawnParticles(){
     const x=(Math.random()-0.5)*200;
     const y=(Math.random()-0.5)*200;
 
-    p.style.left=rect.left + rect.width/2 + "px";
-    p.style.top=rect.top + rect.height/2 + "px";
+    p.style.left=(rect.left + rect.width/2 + window.scrollX)+"px";
+    p.style.top=(rect.top + rect.height/2 + window.scrollY)+"px";
 
     p.style.setProperty("--x",x+"px");
     p.style.setProperty("--y",y+"px");
@@ -369,21 +359,11 @@ function spawnParticles(){
   }
 }
 
-/* SAVE */
-async function save(){
-  if(!userRef) return;
-
-  await updateDoc(userRef,{
-    count,mult,auto,turbo,rebirths,step
-  });
-}
-
 /* UI */
 function updateUI(){
   countEl.textContent=count;
 }
 
-/* BALL */
 function updateBall(){
   if(rebirths === 0) ball.style.background="gray";
   else if(rebirths === 1) ball.style.background="#4da3ff";
@@ -393,43 +373,10 @@ function updateBall(){
   else ball.style.background="gold";
 }
 
-/* SHOP */
-function updateShop(){
-  const buttons=[
-    {id:"b2", step:0},
-    {id:"bAuto", step:1},
-    {id:"b3", step:2},
-    {id:"bTurbo", step:3}
-  ];
-
-  buttons.forEach(b=>{
-    const el=document.getElementById(b.id);
-
-    if(step === b.step){
-      el.className="active";
-      el.disabled=false;
-    } else {
-      el.className="locked";
-      el.disabled=true;
-    }
-  });
-}
-
-/* AUTO */
-function startAuto(){
-  if(autoInterval) return;
-
-  autoInterval=setInterval(()=>{
-    if(!jumping) jump();
-  },1500);
-}
-
-function startTurbo(){
-  if(turboInterval) return;
-
-  turboInterval=setInterval(()=>{
-    if(!jumping) jump();
-  },700);
+/* SAVE */
+async function save(){
+  if(!userRef) return;
+  await updateDoc(userRef,{count,mult,auto,turbo,rebirths,step});
 }
 
 /* SHOP */
@@ -438,8 +385,18 @@ window.buyAuto=()=>{ if(step!==1 || count<300) return; count-=300; auto=true; st
 window.buy3=()=>{ if(step!==2 || count<600) return; count-=600; mult=3; step=3; updateShop(); save(); };
 window.buyTurbo=()=>{ if(step!==3 || count<1000) return; count-=1000; turbo=true; step=4; startTurbo(); updateShop(); save(); };
 
-/* REBIRTH */
 window.rebirth=()=>{ if(step!==4 || count<10000) return; rebirths++; count=0; mult=1; auto=false; turbo=false; step=0; updateBall(); updateShop(); save(); location.reload(); };
+
+/* AUTO */
+function startAuto(){
+  if(autoInterval) return;
+  autoInterval=setInterval(()=>{ if(!jumping) jump(); },1500);
+}
+
+function startTurbo(){
+  if(turboInterval) return;
+  turboInterval=setInterval(()=>{ if(!jumping) jump(); },700);
+}
 
 /* RANK */
 function loadRank(){
@@ -452,7 +409,6 @@ function loadRank(){
 
     snap.forEach(d=>{
       const data=d.data();
-
       let li=list.children[i-1];
 
       if(!li){
@@ -460,51 +416,18 @@ function loadRank(){
         list.appendChild(li);
       }
 
-      let color="white";
-      if(i===1) color="gold";
-      else if(i===2) color="silver";
-      else if(i===3) color="#cd7f32";
-
-      li.style.color=color;
-      li.style.fontWeight="bold";
-
-      li.textContent=`${i}. ${data.name || "Gracz"} - ${data.count || 0}`;
-
+      li.textContent=`${i}. ${data.name||"Gracz"} - ${data.count||0}`;
       i++;
     });
   });
 }
-</script>
 
-<!-- IP SYSTEM -->
-<script type="module">
-import { auth, db } from "./firebase.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+/* LOGOUT */
+window.logout=async()=>{
+  await signOut(auth);
+  location.href="login.html";
+};
 
-async function getIP(){
-  try{
-    const res=await fetch("https://api.ipify.org?format=json");
-    const data=await res.json();
-    return data.ip;
-  }catch(e){
-    return "unknown";
-  }
-}
-
-onAuthStateChanged(auth, async (user)=>{
-  if(!user) return;
-
-  const ip=await getIP();
-
-  const userRef=doc(db,"users",user.uid);
-
-  await setDoc(userRef,{
-    ip:ip
-  },{merge:true});
-
-  console.log("IP zapisane:",ip);
-});
 </script>
 
 </body>
