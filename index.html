@@ -295,22 +295,16 @@ function updateUI(){ countEl.textContent=count; }
 
 function updateBall(){
   const colors = [
-    ["#ffffff", "#9aa0a6"],
-    ["#4da3ff", "#0b2cff"],
-    ["#00ff88", "#00a86b"],
-    ["#ffcc00", "#ff7a00"],
-    ["#b84dff", "#5a00ff"],
-    ["#ff4d4d", "#b30000"],
-    ["#00e5ff", "#003cff"],
-    ["#ff66cc", "#ff00ff"],
-    ["#00ffcc", "#006666"],
-    ["#ff9966", "#ff3300"]
+    ["#ffffff","#9aa0a6"],
+    ["#4da3ff","#0b2cff"],
+    ["#00ff88","#00a86b"],
+    ["#ffcc00","#ff7a00"],
+    ["#b84dff","#5a00ff"],
+    ["#ff4d4d","#b30000"]
   ];
 
   let r = rebirths % colors.length;
   let c = colors[r];
-
-  if(!ball) return;
 
   ball.style.background =
     "radial-gradient(circle at 30% 30%, #ffffffaa, " +
@@ -319,16 +313,6 @@ function updateBall(){
 
   ball.style.boxShadow =
     "0 0 15px " + c[0] + ", 0 0 35px " + c[0] + ", 0 0 60px " + c[1];
-}
-
-  let r = rebirths % colors.length;
-  let c = colors[r];
-
-  ball.style.background = `radial-gradient(circle at 30% 30%, ${c[0]}, ${c[1]})`;
-  ball.style.boxShadow = `0 0 25px ${c[0]}`;
-}
-
-  ball.style.background = gradients[Math.min(rebirths,5)];
 }
 
 async function save(){
