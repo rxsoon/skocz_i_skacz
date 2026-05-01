@@ -315,12 +315,12 @@ function updateBall(){
   let c = colors[r];
 
   ball.style.background =
-    "radial-gradient(circle at 35% 35%, #ffffff66, " +
-    c[0] + " 40%, " +
+    "radial-gradient(circle at 40% 40%, " +
+    c[0] + " 0%, " +
     c[1] + " 100%)";
 
   ball.style.boxShadow =
-    "0 0 12px " + c[0];
+    "0 0 10px " + c[0];
 }
 
 async function save(){
