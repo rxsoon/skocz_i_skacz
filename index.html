@@ -323,7 +323,7 @@ function updateUI(){
 
 /* BALL COLORS (UNCHANGED) */
 function updateBall(){
-  const colors=[
+  const colors = [
     ["#ffffff","#9aa0a6"],
     ["#4da3ff","#1e60ff"],
     ["#00ff88","#00a86b"],
@@ -336,9 +336,11 @@ function updateBall(){
   let c = colors[r];
 
   ball.style.background =
-    "radial-gradient(circle at 35% 35%, #ffffff66, "+c[0]+" 40%, "+c[1]+" 100%)";
+    "radial-gradient(circle at 50% 50%, " +
+    c[0] + " 0%, " +
+    c[1] + " 100%)";
 
-  ball.style.boxShadow="0 0 12px "+c[0];
+  ball.style.boxShadow = "0 0 12px " + c[0];
 }
 
 /* SAVE (UNCHANGED) */
