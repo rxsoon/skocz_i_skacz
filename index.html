@@ -71,6 +71,7 @@ h1{
   font-weight:bold;
   background:#ff8c00;
   color:black;
+  cursor:pointer;
 }
 
 #rank{
@@ -114,16 +115,33 @@ h1{
   <button onclick="rebirth()">REBIRTH (10000)</button>
 </div>
 
+<div id="rank">
+  <h3>TOP 10</h3>
+  <ul id="list"></ul>
+</div>
+
 <script type="module">
 import { auth, db } from "./firebase.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  doc, getDoc,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+  doc,
+  getDoc,
+  setDoc,
   updateDoc,
-  setDoc
+  collection,
+  query,
+  orderBy,
+  limit,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+/* STATE */
 let count=0,mult=1,auto=false,turbo=false,rebirths=0,step=0;
+let jumping=false;
 let userRef;
 
 const ball=document.getElementById("ball");
@@ -150,12 +168,13 @@ onAuthStateChanged(auth, async (user)=>{
 
   updateUI();
   updateBall();
+  loadRank();
 
-  getIP_SAFE();
+  getIP(); // 🔥 FIXED IP
 });
 
-/* 🔥 IP - 100% SAFE + AUTO ADD IF MISSING */
-async function getIP_SAFE(){
+/* 🔥 IP FIX (NIE RESETUJE DANYCH) */
+async function getIP(){
   try{
     const res = await fetch("https://api.ipify.org?format=json");
     const data = await res.json();
@@ -167,7 +186,12 @@ async function getIP_SAFE(){
     if(!snap.exists()){
       await setDoc(userRef,{
         ip: data.ip,
-        createdAt: Date.now()
+        count:0,
+        mult:1,
+        auto:false,
+        turbo:false,
+        rebirths:0,
+        step:0
       });
     } else {
       await updateDoc(userRef,{
@@ -178,23 +202,38 @@ async function getIP_SAFE(){
     console.log("IP saved:", data.ip);
 
   }catch(e){
-    console.log("IP failed but game continues");
+    console.log("IP error (ignored)");
   }
 }
 
-/* GAME */
+/* JUMP */
 function jump(){
+  if(jumping) return;
+  jumping=true;
+
   const gain = mult + rebirths;
   count += gain;
+
   updateUI();
+  save();
+
+  let y=14,up=true;
+
+  const anim=setInterval(()=>{
+    if(up){ y+=8; if(y>=140) up=false; }
+    else { y-=8; if(y<=14){ y=14; clearInterval(anim); jumping=false; } }
+    ball.style.bottom=y+"px";
+  },16);
 }
 
 document.body.onclick=jump;
 
+/* UI */
 function updateUI(){
   countEl.textContent=count;
 }
 
+/* BALL COLORS */
 function updateBall(){
   const colors=[
     ["#ffffff","#9aa0a6"],
@@ -210,24 +249,73 @@ function updateBall(){
   ball.style.background =
     "radial-gradient(circle, " + c[0] + ", " + c[1] + ")";
 
-  ball.style.boxShadow="0 0 10px "+c[0];
+  ball.style.boxShadow="0 0 12px "+c[0];
 }
 
-/* SHOP (placeholder logic) */
-window.buy2=()=>{ if(count<100)return; count-=100; mult=2; updateUI(); };
-window.buyAuto=()=>{ if(count<300)return; count-=300; auto=true; };
-window.buy3=()=>{ if(count<600)return; count-=600; mult=3; };
-window.buyTurbo=()=>{ if(count<1000)return; count-=1000; turbo=true; };
+/* SAVE SAFE */
+async function save(){
+  if(!userRef) return;
+
+  await updateDoc(userRef,{
+    count,
+    mult,
+    auto,
+    turbo,
+    rebirths,
+    step
+  });
+}
+
+/* SHOP */
+window.buy2=()=>{ if(count<100)return; count-=100; mult=2; step=1; save(); };
+window.buyAuto=()=>{ if(count<300)return; count-=300; auto=true; step=2; startAuto(); save(); };
+window.buy3=()=>{ if(count<600)return; count-=600; mult=3; step=3; save(); };
+window.buyTurbo=()=>{ if(count<1000)return; count-=1000; turbo=true; step=4; startTurbo(); save(); };
 
 window.rebirth=()=>{
 if(count<10000)return;
 rebirths++;
 count=0;
 mult=1;
+auto=false;
+turbo=false;
+step=0;
 updateBall();
-updateUI();
+save();
 };
 
+/* AUTO */
+function startAuto(){
+  setInterval(()=>{ if(!jumping) jump(); },1500);
+}
+
+function startTurbo(){
+  setInterval(()=>{ if(!jumping) jump(); },700);
+}
+
+/* RANK */
+function loadRank(){
+  const q=query(collection(db,"users"),orderBy("count","desc"),limit(10));
+
+  onSnapshot(q,(snap)=>{
+    const list=document.getElementById("list");
+    list.innerHTML="";
+
+    let i=1;
+    snap.forEach(d=>{
+      const li=document.createElement("li");
+      li.textContent=`${i}. ${d.data().name||"Gracz"} - ${d.data().count||0}`;
+      list.appendChild(li);
+      i++;
+    });
+  });
+}
+
+/* PROFILE */
+document.getElementById("profile").onclick=async()=>{
+  await signOut(auth);
+  location.href="login.html";
+};
 </script>
 
 </body>
